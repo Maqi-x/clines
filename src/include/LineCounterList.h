@@ -1,12 +1,15 @@
 #ifndef FILE_COUNTER_LIST_H
 #define FILE_COUNTER_LIST_H
 
+#include <Config.h>
 #include <Definitions.h>
+
 #include <stdio.h>
 
 typedef enum LCL_Error {
     LCLE_Ok = 0,
     LCLE_AllocFailed,
+    LCLE_InvalidArgument,
     LCLE_IndexOutOfRange,
 } LCL_Error;
 
@@ -35,10 +38,11 @@ LCL_Error LCL_Copy(LineCounterList* dst, LineCounterList* src);
 //        if it does, you need to call @ref LCL_Destroy before this operation
 LCL_Error LCL_Move(LineCounterList* dst, LineCounterList* src);
 
-LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines);
-LCL_Error LCL_Set(LineCounterList* self, usize index, const char* name, usize lines);
+LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta);
+LCL_Error LCL_Set(LineCounterList* self, usize index, const char* name, usize lines, FileMeta* meta);
 LCL_Error LCL_Get(LineCounterList* self, usize index, LineCounter** out);
 
+LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode);
 LCL_Error LCL_Print(LineCounterList* self, FILE* out);
 
 #endif // FILE_COUNTER_LIST_H

@@ -20,14 +20,7 @@
 #include <unistd.h>
 
 CL_Error CL_Init(CLinesApp* self) {
-    self->linesCount = 0;
-    self->fileCount = 0;
-    self->dirCount = 0;
-
-    self->errorDetails = NULL;
-
-    self->includedRegexes = NULL;
-    self->includedRegexesCount = 0;
+    memset(self, 0, sizeof(CLinesApp));
 
     CFG_Error cerr = CFG_Init(&self->cfg);
     if (cerr != CFGE_Ok) return CLE_ConfigError;
@@ -51,7 +44,7 @@ CL_Error CL_Destroy(CLinesApp* self) {
     }
     free(self->excludedRegexes);
     self->excludedRegexes = NULL;
-    self->excludedRegexes = 0;
+    self->excludedRegexesCount = 0;
 
     for (usize i = 0; i < self->excludedPathsCount; ++i) {
         free(self->excludedPaths[i]);
@@ -94,14 +87,17 @@ CL_Error CL_MapAndExceptCFG(CLinesApp* self, CFG_Error cerr) {
 
     switch (cerr) {
     case CFGE_UnexpectedArgument:
-        MSG_ShowError("Unexpected argument: %s.", self->cfg.lastUnexpectedArg);
-        return CLE_InvalidArgError;
+        MSG_ShowError("Unexpected argument: %s.", self->cfg.errorDetails);
+        break;
     case CFGE_RedeclaredFlag:
         MSG_ShowError("Flag redeclared.");
-        return CLE_InvalidArgError;
+        break;
     case CFGE_InvalidInputNumber:
         MSG_ShowError("Invalid input number.");
-        return CLE_InvalidArgError;
+        break;
+    case CFGE_InvalidSortMode:
+        MSG_ShowError("Invalid sort mode: %s.", self->cfg.errorDetails);
+        break;
 
     case CFGE_AllocFailed:
     case CFGE_ListError:
@@ -110,7 +106,7 @@ CL_Error CL_MapAndExceptCFG(CLinesApp* self, CFG_Error cerr) {
         return CLE_InternalError;
     }
 
-    return CLE_InternalError;
+    return CLE_ConfigError;
 }
 
 CL_Error CL_MapAndExceptLCL(CLinesApp* self, LCL_Error lcerr) {
@@ -125,6 +121,10 @@ CL_Error CL_MapAndExceptLCL(CLinesApp* self, LCL_Error lcerr) {
         MSG_ShowError("Internal error.");
         MSG_ShowDebugLog("Out of memory. (malloc failed)");
         return CLE_AllocFailed;
+    case LCLE_InvalidArgument:
+        MSG_ShowError("Internal error.");
+        MSG_ShowDebugLog("LineCounterList: InvalidArgument");
+        return CLE_InternalError;
     case LCLE_Ok:
         return CLE_Ok;
     }
@@ -140,9 +140,11 @@ CL_Error CL_MapAndExceptCL(CLinesApp* self, CL_Error err) {
         return CLE_Ok;
     case CLE_Todo:
         MSG_ShowDebugLog("TODO!");
+        break;
     case CLE_ConfigError:
     case CLE_ListError:
         // assume CL_MapAndExceptLCL / CL_MapAndExceptCFG alredy called
+        break;
 
     case CLE_ReadDirError:
     case CLE_CloseDirError:
@@ -152,22 +154,28 @@ CL_Error CL_MapAndExceptCL(CLinesApp* self, CL_Error err) {
         else
             MSG_ShowError("Failed to open file.");
         MSG_ShowTip("Are you sure you have read permissions to the specified directories?");
+        break;
     case CLE_AllocFailed:
         MSG_ShowError("Internal error.");
         MSG_ShowDebugLog("Out of memory. (malloc failed)");
+        break;
     case CLE_InternalError:
         if (self->errorDetails)
             MSG_ShowError("Internal error. (%s)", self->errorDetails);
         else
             MSG_ShowError("Internal error.");
         MSG_ShowDebugLog("Yes, CLE_InternalError");
+        break;
 
     case CLE_InvalidArgError:
         MSG_ShowError("Invalid Argument.");
+        break;
     case CLE_NoSuchFileOrDir:
         MSG_ShowError("No such file or directory: %s", self->errorDetails);
+        break;
     case CLE_RegexError:
         MSG_ShowError("Invalid Regex.");
+        break;
     }
 
     return err;
@@ -249,7 +257,7 @@ CL_Error CL_ResetCounter(CLinesApp* self) {
     return CLE_Ok;
 }
 
-CL_Error CL_HandleFile(CLinesApp* self, const char* path, const char* name) {
+CL_Error CL_HandleFile(CLinesApp* self, const char* path, const char* name, FileMeta* meta) {
     if (!CL_ShouldIncludePath(self, name)) return CLE_Ok;
 
     char* basePath = realpath(self->currentPath, NULL);
@@ -280,7 +288,7 @@ CL_Error CL_HandleFile(CLinesApp* self, const char* path, const char* name) {
     }
     fclose(file);
 
-    LCL_Error lcerr = LCL_Append(&self->files, toPrint, count);
+    LCL_Error lcerr = LCL_Append(&self->files, toPrint, count, meta);
     if (lcerr != LCLE_Ok) return CL_MapAndExceptLCL(self, lcerr);
     self->linesCount += count;
 
@@ -321,7 +329,12 @@ CL_Error CL_CountRecursive(CLinesApp* self, const char* path, usize depth) {
                 goto cleanup;
             }
         } else if (S_ISREG(st.st_mode)) {
-            err = CL_HandleFile(self, fullPath, entry->d_name);
+            FileMeta meta = {
+                .path = fullPath,
+                .size = st.st_size,
+                .mtime = st.st_mtime,
+            };
+            err = CL_HandleFile(self, fullPath, entry->d_name, &meta);
             if (err != CLE_Ok) {
                 free(fullPath);
                 goto cleanup;
@@ -412,7 +425,7 @@ int CL_Run(CLinesApp* self, int argc, char** argv) {
 
     err = CL_LoadConfig(self, argc, argv);
     if (err != CLE_Ok) {
-        return (int)err;
+        return (int)CL_MapAndExceptCL(self, err);
     }
     // CFG_DebugBump(&self->cfg, stdout, NULL);
 
@@ -438,6 +451,11 @@ int CL_Run(CLinesApp* self, int argc, char** argv) {
             err = CL_CountRecursive(self, self->currentPath, 0);
             if (err != CLE_Ok) {
                 return (int)CL_MapAndExceptCL(self, err);
+            }
+
+            LCL_Error lcerr = LCL_SortBy(&self->files, self->cfg.sortMode);
+            if (lcerr != LCLE_Ok) {
+                return (int)CL_MapAndExceptLCL(self, lcerr);
             }
 
             err = CL_PrintFiles(self);
@@ -466,11 +484,15 @@ int CL_Run(CLinesApp* self, int argc, char** argv) {
             printf(BOLD "Total directories:" RESET " %zu\n", totalDirCount);
         }
     } else {
-
         SL_Get(&self->cfg.includedPaths, 0, &self->currentPath);
         err = CL_CountRecursive(self, self->currentPath, 0);
         if (err != CLE_Ok) {
             return (int)CL_MapAndExceptCL(self, err);
+        }
+
+        LCL_Error lcerr = LCL_SortBy(&self->files, self->cfg.sortMode);
+        if (lcerr != LCLE_Ok) {
+            return (int)CL_MapAndExceptLCL(self, lcerr);
         }
 
         err = CL_PrintFiles(self);

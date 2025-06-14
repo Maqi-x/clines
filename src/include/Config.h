@@ -14,6 +14,7 @@ typedef enum CFG_Error {
     CFGE_AllocFailed,
     CFGE_ListError,
     CFGE_InvalidInputNumber,
+    CFGE_InvalidSortMode,
 } CFG_Error;
 
 typedef enum CFG_Mode {
@@ -27,6 +28,7 @@ typedef enum CFG_Mode {
 } CFG_Mode;
 
 typedef enum CFG_SortMode {
+    _SM_NotSetted,
     SM_NotSort,
     SM_Lines,
     SM_Ext,
@@ -52,13 +54,16 @@ typedef struct Config {
     usize maxDepth;
     bool maxDepthSetted;
 
+    CFG_SortMode sortMode;
+
     CFG_Mode mode;
-    char* lastUnexpectedArg;
+    char* errorDetails;
 } Config;
 
 CFG_Error CFG_SetVerbose(Config* self, bool value);
 CFG_Error CFG_SetRecursive(Config* self, bool value);
 CFG_Error CFG_SetLastUnexpectedArg(Config* self, const char* arg, usize argLen, const char* prefix);
+CFG_Error CFG_SetErrorDetails(Config* self, const char* msg);
 
 CFG_Error CFG_Init(Config* self);
 CFG_Error CFG_Destroy(Config* self);

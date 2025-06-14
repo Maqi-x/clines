@@ -1,6 +1,8 @@
+#include "App.h"
 #include <LineCounterList.h>
 
 #include <Definitions.h>
+#include <Utils.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +59,7 @@ LCL_Error LCL_InitReserved(LineCounterList* self, usize minCap) {
 LCL_Error LCL_Clear(LineCounterList* self) {
     for (LineCounter* c = self->data; c < self->data + self->len; ++c) {
         free(c->toPrint);
+        free(c->meta.path);
     }
 
     free(self->data);
@@ -75,6 +78,8 @@ LCL_Error LCL_Shrink(LineCounterList* self) {
     return LCL_Resize(self, self->len);
 }
 
+/// @note Recognizes that dst is not initialized and does not store data.
+//        if it does, you need to call @ref LCL_Destroy before this operation
 LCL_Error LCL_Copy(LineCounterList* dst, LineCounterList* src) {
     if (src == dst) return LCLE_Ok;
 
@@ -88,39 +93,69 @@ LCL_Error LCL_Copy(LineCounterList* dst, LineCounterList* src) {
         dst->data[i].toPrint = strdup(src->data[i].toPrint);
         if (dst->data[i].toPrint == NULL) return LCLE_AllocFailed; // LCL_Destroy should free alredy allocated strings
 
+        FileMeta* srcMeta = &src->data[i].meta;
+        dst->data[i].meta = (FileMeta) {
+            .path = strdup(srcMeta->path),
+            .mtime = srcMeta->mtime,
+            .size = srcMeta->size,
+        };
+
+        if (dst->data[i].meta.path == NULL) {
+            return LCLE_AllocFailed; // LCL_Destroy should free alredy allocated paths
+        }
+
         dst->len++;
     }
 
     return LCLE_Ok;
 }
 
+/// @note Recognizes that dst is not initialized and does not store data.
+//        if it does, you need to call @ref LCL_Destroy before this operation
 LCL_Error LCL_Move(LineCounterList* dst, LineCounterList* src) {
     memcpy(dst, src, sizeof(LineCounterList));
     memset(src, 0, sizeof(LineCounterList));
     return LCLE_Ok;
 }
 
-LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines) {
-    LCL_Expand(self);
+LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta) {
+    LCL_Error err = LCL_Expand(self);
+    if (err != LCLE_Ok) return err;
 
     char* dname = strdup(name);
     if (dname == NULL) return LCLE_AllocFailed;
 
-    self->data[self->len++] = (LineCounter){
+    self->data[self->len++] = (LineCounter) {
         .toPrint = dname,
         .lines = lines,
+        .meta = (FileMeta) {
+            .path = strdup(meta->path),
+            .mtime = meta->mtime,
+            .size = meta->size,
+        },
     };
+    if (self->data[self->len - 1].meta.path == NULL) {
+        return LCLE_AllocFailed;
+    }
     return LCLE_Ok;
 }
 
-LCL_Error LCL_Set(LineCounterList* self, usize index, const char* name, usize lines) {
+LCL_Error LCL_Set(LineCounterList* self, usize index, const char* toPrint, usize lines, FileMeta* meta) {
     if (index >= self->len) return LCLE_IndexOutOfRange;
 
     free(self->data[index].toPrint);
-    self->data[index].toPrint = strdup(name);
+    self->data[index].toPrint = strdup(toPrint);
     if (self->data[index].toPrint == NULL) return LCLE_AllocFailed;
 
     self->data[index].lines = lines;
+    self->data[index].meta = (FileMeta) {
+        .path = strdup(meta->path),
+        .mtime = meta->mtime,
+        .size = meta->size,
+    };
+    if (self->data[index].meta.path == NULL) {
+        return LCLE_AllocFailed;
+    }
     return LCLE_Ok;
 }
 
@@ -128,6 +163,80 @@ LCL_Error LCL_Get(LineCounterList* self, usize index, LineCounter** out) {
     if (index >= self->len) return LCLE_IndexOutOfRange;
 
     *out = &self->data[index];
+    return LCLE_Ok;
+}
+
+static int cmpByLines(const void* p1, const void* p2) {
+    usize lines1 = ((const LineCounter*)p1)->lines;
+    usize lines2 = ((const LineCounter*)p2)->lines;
+
+    if (lines1 < lines2) return -1;
+    if (lines1 > lines2) return 1;
+    return 0;
+}
+
+static int cmpByName(const void* p1, const void* p2) {
+    const LineCounter* a = (const LineCounter*)p1;
+    const LineCounter* b = (const LineCounter*)p2;
+
+    const char* name1 = strrchr(a->meta.path, '/');
+    const char* name2 = strrchr(b->meta.path, '/');
+
+    name1 = name1 ? name1 + 1 : a->meta.path;
+    name2 = name2 ? name2 + 1 : b->meta.path;
+
+    int cmp = strcmp(name1, name2);
+    if (cmp != 0) return cmp;
+
+    // tie-break by lines count
+    if (a->lines < b->lines) return -1;
+    if (a->lines > b->lines) return 1;
+    return 0;
+}
+
+static int cmpByExt(const void* p1, const void* p2) {
+    const char* path1 = ((const LineCounter*)p1)->meta.path;
+    const char* path2 = ((const LineCounter*)p2)->meta.path;
+
+    const char* ext1 = GetExtension(path1);
+    const char* ext2 = GetExtension(path2);
+
+    return strcmp(ext1, ext2);
+}
+
+static int cmpByPath(const void* p1, const void* p2) {
+    const char* path1 = ((const LineCounter*)p1)->meta.path;
+    const char* path2 = ((const LineCounter*)p2)->meta.path;
+
+    return strcmp(path1, path2);
+}
+
+LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode) {
+    if (mode == SM_NotSort) return LCLE_Ok;
+
+    typedef int CmpCallback(const void*, const void*);
+    CmpCallback* cmp = NULL;
+
+    switch (mode) {
+    case SM_Lines:
+        cmp = cmpByLines;
+        break;
+    case SM_Path:
+        cmp = cmpByPath;
+        break;
+    case SM_Name:
+        cmp = cmpByName;
+        break;
+    case SM_Ext:
+        cmp = cmpByExt;
+        break;
+    default:
+        return LCLE_InvalidArgument;
+    }
+
+    if (cmp == NULL) return LCLE_InvalidArgument;
+
+    qsort(self->data, self->len, sizeof(LineCounter), cmp);
     return LCLE_Ok;
 }
 

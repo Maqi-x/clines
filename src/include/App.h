@@ -49,7 +49,7 @@ CL_Error CL_Init(CLinesApp* self);
 CL_Error CL_Destroy(CLinesApp* self);
 
 bool CL_ShouldIncludePath(CLinesApp* self, const char* filename);
-CL_Error CL_HandleFile(CLinesApp* self, const char* path, const char* name);
+CL_Error CL_HandleFile(CLinesApp* self, const char* path, const char* name, FileMeta* meta);
 CL_Error CL_CountRecursive(CLinesApp* self, const char* path, usize depth);
 CL_Error CL_ResetCounter(CLinesApp* self);
 
