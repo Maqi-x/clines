@@ -56,9 +56,12 @@ dkms.conf
 **/.nvim
 
 # Debug
-/**/vgcore.*
+**/vgcore.*
 
 # Build
 compile_flags.txt
 build/
 out/
+
+# Other
+**/__pycache__
