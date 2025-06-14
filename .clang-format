@@ -1,0 +1,28 @@
+BasedOnStyle: WebKit
+
+# Number of spaces for each indentation level
+IndentWidth: 4
+
+AllowShortIfStatementsOnASingleLine: true       # Allow short if-statements on a single line
+AllowShortLoopsOnASingleLine: true              # Allow short loops (for, while) on a single line
+AllowShortCaseLabelsOnASingleLine: false        # Don't short case labels in switch statements on a single line
+AllowShortFunctionsOnASingleLine: None          # Don't allow functions on a single line
+
+# Pointers and references are aligned with the type
+PointerAlignment: Left
+
+# Maximum line length before wrapping
+ColumnLimit: 120
+
+# Do not reflow or wrap comments
+ReflowComments: false
+CommentPragmas: '^'
+
+# Style of brace placement: attach opening brace to control statement
+BreakBeforeBraces: Attach
+
+AlignAfterOpenBracket: DontAlign
+AllowAllArgumentsOnNextLine: true
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+DisableFormat: false
