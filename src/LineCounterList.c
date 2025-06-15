@@ -1,4 +1,3 @@
-#include "App.h"
 #include <LineCounterList.h>
 
 #include <Definitions.h>
@@ -80,7 +79,7 @@ LCL_Error LCL_Shrink(LineCounterList* self) {
 
 /// @note Recognizes that dst is not initialized and does not store data.
 //        if it does, you need to call @ref LCL_Destroy before this operation
-LCL_Error LCL_Copy(LineCounterList* dst, LineCounterList* src) {
+LCL_Error LCL_Copy(LineCounterList* dst, const LineCounterList* src) {
     if (src == dst) return LCLE_Ok;
 
     LCL_Error err = LCL_AllocBuf(dst, src->cap);
@@ -175,6 +174,10 @@ static int cmpByLines(const void* p1, const void* p2) {
     return 0;
 }
 
+static int cmpByLinesReversed(const void* p1, const void* p2) {
+    return -cmpByLines(p1, p2);
+}
+
 static int cmpByName(const void* p1, const void* p2) {
     const LineCounter* a = (const LineCounter*)p1;
     const LineCounter* b = (const LineCounter*)p2;
@@ -194,6 +197,10 @@ static int cmpByName(const void* p1, const void* p2) {
     return 0;
 }
 
+static int cmpByNameReversed(const void* p1, const void* p2) {
+    return -cmpByName(p1, p2);
+}
+
 static int cmpByExt(const void* p1, const void* p2) {
     const char* path1 = ((const LineCounter*)p1)->meta.path;
     const char* path2 = ((const LineCounter*)p2)->meta.path;
@@ -204,6 +211,10 @@ static int cmpByExt(const void* p1, const void* p2) {
     return strcmp(ext1, ext2);
 }
 
+static int cmpByExtReversed(const void* p1, const void* p2) {
+    return -cmpByExt(p1, p2);
+}
+
 static int cmpByPath(const void* p1, const void* p2) {
     const char* path1 = ((const LineCounter*)p1)->meta.path;
     const char* path2 = ((const LineCounter*)p2)->meta.path;
@@ -211,7 +222,11 @@ static int cmpByPath(const void* p1, const void* p2) {
     return strcmp(path1, path2);
 }
 
-LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode) {
+static int cmpByPathReversed(const void* p1, const void* p2) {
+    return -cmpByPath(p1, p2);
+}
+
+LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode, bool reverse) {
     if (mode == SM_NotSort) return LCLE_Ok;
 
     typedef int CmpCallback(const void*, const void*);
@@ -219,16 +234,16 @@ LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode) {
 
     switch (mode) {
     case SM_Lines:
-        cmp = cmpByLines;
+        cmp = reverse ? cmpByLinesReversed : cmpByLines;
         break;
     case SM_Path:
-        cmp = cmpByPath;
+        cmp = reverse ? cmpByPathReversed : cmpByPath;
         break;
     case SM_Name:
-        cmp = cmpByName;
+        cmp = reverse ? cmpByNameReversed : cmpByName;
         break;
     case SM_Ext:
-        cmp = cmpByExt;
+        cmp = reverse ? cmpByExtReversed : cmpByExt;
         break;
     default:
         return LCLE_InvalidArgument;
@@ -240,7 +255,7 @@ LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode) {
     return LCLE_Ok;
 }
 
-LCL_Error LCL_Print(LineCounterList* self, FILE* out) {
+LCL_Error LCL_Print(const LineCounterList* self, FILE* out) {
     if (self->len == 0) {
         fputc('[', out);
         fputc(']', out);

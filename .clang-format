@@ -26,3 +26,6 @@ AllowAllArgumentsOnNextLine: true
 
 KeepEmptyLinesAtTheStartOfBlocks: true
 DisableFormat: false
+
+# Preprocessor directives indentation
+IndentPPDirectives: AfterHash

@@ -27,6 +27,10 @@ CFG_Error CFG_SetRecursive(Config* self, bool value) {
     return SetSwitch(&self->recursive, value);
 }
 
+CFG_Error CFG_SetDebugMode(Config* self, bool value) {
+    return SetSwitch(&self->debugMode, value);
+}
+
 CFG_Error CFG_SetErrorDetails(Config* self, const char* msg) {
     free(self->errorDetails);
 
@@ -88,15 +92,25 @@ CFG_Error CFG_SetMaxDepthStr(Config* self, const char* maxDepthStr) {
     return CFGE_Ok;
 }
 
-CFG_Error CFG_SetSortMode(Config* self, CFG_SortMode mode) {
+CFG_Error CFG_SetReverse(Config* self, bool reverse) {
+    return SetSwitch(&self->reverse, reverse);
+}
+
+CFG_Error CFG_SetSortMode(Config* self, CFG_SortMode mode, bool reverse) {
     if (self->sortMode != _SM_NotSetted) {
         return CFGE_RedeclaredFlag;
     }
+
     self->sortMode = mode;
-    return CFGE_Ok;
+    if (reverse) {
+        return CFG_SetReverse(self, reverse);
+    } else {
+        self->reverse.val = reverse;
+        return CFGE_Ok;
+    }
 }
 
-CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr) {
+CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr, bool reverse) {
     CFG_SortMode mode = _SM_NotSetted;
     if (StrEql(modeStr, "lines")) {
         mode = SM_Lines;
@@ -112,12 +126,13 @@ CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr) {
         return CFGE_InvalidSortMode;
     }
 
-    return CFG_SetSortMode(self, mode);
+    return CFG_SetSortMode(self, mode, reverse);
 }
 
 CFG_Error CFG_Init(Config* self) {
     self->verbose = (CFG_Switch) { false, false };
     self->recursive = (CFG_Switch) { false, false };
+    self->reverse = (CFG_Switch) { false, false };
 
     self->errorDetails = NULL;
     self->maxDepth = 0;
@@ -158,8 +173,9 @@ CFG_Error CFG_Destroy(Config* self) {
 
     self->maxDepth = 0;
     self->maxDepthSetted = false;
-    self->verbose = (CFG_Switch) { false };
-    self->recursive = (CFG_Switch) { false };
+    self->verbose = (CFG_Switch) { false, false };
+    self->recursive = (CFG_Switch) { false, false };
+    self->reverse = (CFG_Switch) { false, false };
     self->sortMode = _SM_NotSetted;
 
     self->mode = CFGM_Pass;
@@ -221,6 +237,9 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
     } else if (StrEql(flag, "no-verbose")) {
         CFG_Error err = CFG_SetVerbose(self, false);
         if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "debug")) {
+        CFG_Error err = CFG_SetDebugMode(self, true);
+        if (err != CFGE_Ok) return err;
 
     } else if (StrEql(flag, "ext") || StrEql(flag, "include-ext")) {
         self->mode = CFGM_CollectingIncludedExtensions;
@@ -239,10 +258,16 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
         CFG_Error err = CFG_SetMaxDepthStr(self, flag + strlen("max-depth="));
         if (err != CFGE_Ok) return err;
     } else if (HasPrefix(flag, "sort=")) {
-        CFG_Error err = CFG_SetSortModeStr(self, flag + strlen("sort="));
+        CFG_Error err = CFG_SetSortModeStr(self, flag + strlen("sort="), false);
         if (err != CFGE_Ok) return err;
     } else if (HasPrefix(flag, "sort-by-")) {
-        CFG_Error err = CFG_SetSortModeStr(self, flag + strlen("sort-by-"));
+        CFG_Error err = CFG_SetSortModeStr(self, flag + strlen("sort-by-"), false);
+        if (err != CFGE_Ok) return err;
+    } else if (HasPrefix(flag, "reversed-sort-by-")) {
+        CFG_Error err = CFG_SetSortModeStr(self, flag + strlen("reversed-sort-by-"), true);
+        if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "reverse") || StrEql(flag, "reverse-sort")) {
+        CFG_Error err = CFG_SetReverse(self, true);
         if (err != CFGE_Ok) return err;
     } else {
         CFG_Error err = CFG_SetLastUnexpectedArg(self, flag, flagLen, "--");
@@ -257,6 +282,7 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
 CFG_Error CFG_SetDefauts(Config* self) {
     const bool defaultRecursiveVal = false;
     const bool defaultVerboseVal = false;
+    const bool defaultReverseVal = false;
     const usize defaultMaxDepthVal = 50;
     const char* const defaultPathVal = ".";
 
@@ -267,6 +293,10 @@ CFG_Error CFG_SetDefauts(Config* self) {
     if (!self->verbose.setted) {
         err = CFG_SetVerbose(self, defaultVerboseVal);
     }
+    if (!self->reverse.setted) {
+        err = CFG_SetReverse(self, defaultReverseVal);
+    }
+
     if (!self->maxDepthSetted) {
         err = CFG_SetMaxDepth(self, defaultMaxDepthVal);
     }
@@ -281,6 +311,8 @@ CFG_Error CFG_SetDefauts(Config* self) {
 }
 
 CFG_Error CFG_Parse(Config* self, int argc, char** argv) {
+    self->mode = CFGM_CollectingIncludedPaths;
+
     for (usize i = 1; i < argc; ++i) {
         const char* arg = argv[i];
         if (HasPrefix(arg, "--")) {
@@ -327,6 +359,7 @@ CFG_Error CFG_Parse(Config* self, int argc, char** argv) {
     }
 
     CFG_SetDefauts(self);
+    self->reverse.val = -self->reverse.val;
     return CFGE_Ok;
 }
 

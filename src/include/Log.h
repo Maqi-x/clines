@@ -78,8 +78,9 @@ static inline int MSG_ShowDebugLog(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    puts(COLOR_DEBUGLOG1 "[ DEBUG ]:" COLOR_DEBUGLOG2);
+    fputs(COLOR_DEBUGLOG1 "[ DEBUG ]: " COLOR_DEBUGLOG2, stdout);
     int res = vprintf(fmt, args);
+    fputs("\033[0m\n", stdout);
 
     va_end(args);
     return res + strlen(COLOR_DEBUGLOG1 "[ DEBUG ]:" COLOR_DEBUGLOG2);

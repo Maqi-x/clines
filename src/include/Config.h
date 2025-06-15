@@ -50,11 +50,13 @@ typedef struct Config {
 
     CFG_Switch verbose;
     CFG_Switch recursive;
+    CFG_Switch debugMode;
 
     usize maxDepth;
     bool maxDepthSetted;
 
     CFG_SortMode sortMode;
+    CFG_Switch reverse;
 
     CFG_Mode mode;
     char* errorDetails;
