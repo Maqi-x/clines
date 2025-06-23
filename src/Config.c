@@ -19,8 +19,8 @@ static CFG_Error SetSwitch(CFG_Switch* pswitch, bool value) {
     return CFGE_Ok;
 }
 
-CFG_Error CFG_SetVerbose(Config* self, bool value) {
-    return SetSwitch(&self->verbose, value);
+CFG_Error CFG_SetPrintMode(Config* self, bool value) {
+    return SetSwitch(&self->printMode, value);
 }
 
 CFG_Error CFG_SetRecursive(Config* self, bool value) {
@@ -29,6 +29,10 @@ CFG_Error CFG_SetRecursive(Config* self, bool value) {
 
 CFG_Error CFG_SetDebugMode(Config* self, bool value) {
     return SetSwitch(&self->debugMode, value);
+}
+
+CFG_Error CFG_SetLocEnabled(Config* self, bool value) {
+    return SetSwitch(&self->locEnabled, value);
 }
 
 CFG_Error CFG_SetErrorDetails(Config* self, const char* msg) {
@@ -130,7 +134,7 @@ CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr, bool reverse) {
 }
 
 CFG_Error CFG_Init(Config* self) {
-    self->verbose = (CFG_Switch) { false, false };
+    self->printMode = (CFG_Switch) { false, false };
     self->recursive = (CFG_Switch) { false, false };
     self->reverse = (CFG_Switch) { false, false };
 
@@ -173,7 +177,7 @@ CFG_Error CFG_Destroy(Config* self) {
 
     self->maxDepth = 0;
     self->maxDepthSetted = false;
-    self->verbose = (CFG_Switch) { false, false };
+    self->printMode = (CFG_Switch) { false, false };
     self->recursive = (CFG_Switch) { false, false };
     self->reverse = (CFG_Switch) { false, false };
     self->sortMode = _SM_NotSetted;
@@ -191,10 +195,15 @@ CFG_Error CFG_HandleShortOption(Config* self, const char* flag) {
             CFG_Error err = CFG_SetRecursive(self, true);
             if (err != CFGE_Ok) return err;
         } break;
-        case 'v': {
-            CFG_Error err = CFG_SetVerbose(self, true);
+        case 'v':
+        case 'p': {
+            CFG_Error err = CFG_SetPrintMode(self, true);
             if (err != CFGE_Ok) return err;
         } break;
+        case 'l': {
+            CFG_Error err = CFG_SetLocEnabled(self, true);
+            if (err != CFGE_Ok) return err;
+        }
 
         case 'e': {
             self->mode = CFGM_CollectingIncludedExtensions;
@@ -231,17 +240,24 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
     } else if (StrEql(flag, "no-recursive")) {
         CFG_Error err = CFG_SetRecursive(self, false);
         if (err != CFGE_Ok) return err;
-    } else if (StrEql(flag, "verbose")) {
-        CFG_Error err = CFG_SetVerbose(self, true);
+    } else if (StrEql(flag, "verbose") || StrEql(flag, "print")) {
+        CFG_Error err = CFG_SetPrintMode(self, true);
         if (err != CFGE_Ok) return err;
-    } else if (StrEql(flag, "no-verbose")) {
-        CFG_Error err = CFG_SetVerbose(self, false);
+    } else if (StrEql(flag, "no-verbose") || StrEql(flag, "no-print")) {
+        CFG_Error err = CFG_SetPrintMode(self, false);
         if (err != CFGE_Ok) return err;
     } else if (StrEql(flag, "debug")) {
         CFG_Error err = CFG_SetDebugMode(self, true);
         if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "loc")) {
+        CFG_Error err = CFG_SetLocEnabled(self, true);
+        if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "no-loc")) {
+        CFG_Error err = CFG_SetLocEnabled(self, false);
+        if (err != CFGE_Ok) return err;
+    }
 
-    } else if (StrEql(flag, "ext") || StrEql(flag, "include-ext")) {
+    else if (StrEql(flag, "ext") || StrEql(flag, "include-ext")) {
         self->mode = CFGM_CollectingIncludedExtensions;
     } else if (StrEql(flag, "regex") || StrEql(flag, "include-regex")) {
         self->mode = CFGM_CollectingIncludedRegexes;
@@ -253,8 +269,9 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
         self->mode = CFGM_CollectingIncludedPaths;
     } else if (StrEql(flag, "exclude") || StrEql(flag, "exclude-path")) {
         self->mode = CFGM_CollectingExcludedPaths;
+    }
 
-    } else if (HasPrefix(flag, "max-depth=")) {
+    else if (HasPrefix(flag, "max-depth=")) {
         CFG_Error err = CFG_SetMaxDepthStr(self, flag + strlen("max-depth="));
         if (err != CFGE_Ok) return err;
     } else if (HasPrefix(flag, "sort=")) {
@@ -269,7 +286,9 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
     } else if (StrEql(flag, "reverse") || StrEql(flag, "reverse-sort")) {
         CFG_Error err = CFG_SetReverse(self, true);
         if (err != CFGE_Ok) return err;
-    } else {
+    }
+
+    else {
         CFG_Error err = CFG_SetLastUnexpectedArg(self, flag, flagLen, "--");
         if (err != CFGE_Ok) return err;
 
@@ -290,8 +309,8 @@ CFG_Error CFG_SetDefauts(Config* self) {
     if (!self->recursive.setted) {
         err = CFG_SetRecursive(self, defaultRecursiveVal);
     }
-    if (!self->verbose.setted) {
-        err = CFG_SetVerbose(self, defaultVerboseVal);
+    if (!self->printMode.setted) {
+        err = CFG_SetPrintMode(self, defaultVerboseVal);
     }
     if (!self->reverse.setted) {
         err = CFG_SetReverse(self, defaultReverseVal);
@@ -363,7 +382,7 @@ CFG_Error CFG_Parse(Config* self, int argc, char** argv) {
     return CFGE_Ok;
 }
 
-static const char* s(bool val) {
+static inline const char* s(bool val) {
     if (val) return "true";
     return "false";
 }
@@ -399,7 +418,7 @@ CFG_Error CFG_DebugBump(Config* self, FILE* out, const char* indent) {
     fputc('\n', out);
 
     fprintf(out, "%s.recursive = %s\n", indent, s(self->recursive.val));
-    fprintf(out, "%s.verbose = %s\n", indent, s(self->verbose.val));
+    fprintf(out, "%s.printMode = %s\n", indent, s(self->printMode.val));
 
     fprintf(out, "%s.maxDepth = %zu\n", indent, self->maxDepth);
     fprintf(out, "%s.maxDepthSetted = %s\n", indent, s(self->maxDepthSetted));

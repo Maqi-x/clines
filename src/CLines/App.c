@@ -86,82 +86,12 @@ CL_Error CL_Destroy(CLinesApp* self) {
     return CLE_Ok;
 }
 
-static bool HasExcludedExtension(CLinesApp* self, const char* path) {
-    const char* ext = GetExtension(path);
-    if (!ext) return false;
-
-    for (usize i = 0; i < self->cfg.excludedExtensions.len; ++i) {
-        char* excludedExt;
-        SL_Get(&self->cfg.excludedExtensions, i, &excludedExt);
-        if (StrEql(ext, excludedExt)) return true;
-    }
-
-    return false;
-}
-
-static bool MatchesExcludedRegex(CLinesApp* self, const char* path) {
-    for (usize i = 0; i < self->excludedRegexesCount; ++i) {
-        int res = regexec(&self->excludedRegexes[i], path, 0, NULL, 0);
-        if (res == 0) return true;
-    }
-
-    return false;
-}
-
-static bool HasIncludedExtension(CLinesApp* self, const char* path) {
-    const char* ext = GetExtension(path);
-    if (!ext) return false;
-
-    for (usize i = 0; i < self->cfg.includedExtensions.len; ++i) {
-        char* includedExt;
-        SL_Get(&self->cfg.includedExtensions, i, &includedExt);
-        if (StrEql(ext, includedExt)) return true;
-    }
-
-    return false;
-}
-
-static bool MatchesIncludedRegex(CLinesApp* self, const char* path) {
-    for (usize i = 0; i < self->includedRegexesCount; ++i) {
-        int res = regexec(&self->includedRegexes[i], path, 0, NULL, 0);
-        if (res == 0) return true;
-    }
-
-    return false;
-}
-
-/**
- * Checks if file/directory should be included
- */
-bool CL_ShouldIncludePath(CLinesApp* self, const char* path, const char* name, bool isDir) {
-    if (CL_IsExcluded(self, path)) return false;
-    if (!isDir) {
-        if (HasExcludedExtension(self, name)) return false;
-    }
-    if (MatchesExcludedRegex(self, path)) return false;
-
-    if (!isDir) {
-        if (self->cfg.includedExtensions.len > 0 && !HasIncludedExtension(self, name)) {
-            return false;
-        }
-    }
-    if (self->includedRegexesCount > 0 && !MatchesIncludedRegex(self, name)) {
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * Checks if the file is excluded
- */
-bool CL_IsExcluded(CLinesApp* self, const char* fullPath) {
-    for (usize i = 0; i < self->excludedPathsCount; ++i) {
-        if (HasPrefix(fullPath, self->excludedPaths[i])) {
-            return true;
-        }
-    }
-    return false;
+CL_Error CL_PrintLocStat(CLinesApp* self, LocStat* stat, usize indentLevel) {
+    printf("%*s\033[1mCode Lines: %zu\033[0m\n", (int)indentLevel * 2, "", stat->codeLines);
+    printf("%*s\033[1mComment Lines: %zu\033[0m\n", (int)indentLevel * 2, "", stat->commentLines);
+    printf("%*s\033[1mBlank Lines: %zu\033[0m\n", (int)indentLevel * 2, "", stat->emptyLines);
+    printf("%*s\033[1mPreprocessor Directive Lines: %zu\033[0m\n", (int)indentLevel * 2, "", stat->preprocessorLines);
+    return CLE_Ok;
 }
 
 CL_Error CL_ResetCounter(CLinesApp* self) {
@@ -234,13 +164,28 @@ CL_Error CL_LoadConfig(CLinesApp* self, int argc, char** argv) {
 }
 
 CL_Error CL_PrintFiles(CLinesApp* self) {
-    if (!self->cfg.verbose.val) return CLE_Ok;
+    if (self->cfg.printMode.val) {
+        for (usize i = 0; i < self->files.len; ++i) {
+            LineCounter* f;
+            LCL_Error lcerr = LCL_Get(&self->files, i, &f);
+            if (lcerr != LCLE_Ok) return CL_MapAndExceptLCL(self, lcerr);
 
-    for (usize i = 0; i < self->files.len; ++i) {
-        LineCounter* f;
-        LCL_Get(&self->files, i, &f);
+            printf("[+] %s - %zu lines\n", f->toPrint, f->lines);
+            if (self->cfg.locEnabled.val && f->hasLocStat) {
+                CL_PrintLocStat(self, &f->locStat, 1);
+            }
+        }
+    } else if (self->cfg.locEnabled.val) {
+        for (usize i = 0; i < self->files.len; ++i) {
+            LineCounter* f;
+            LCL_Error lcerr = LCL_Get(&self->files, i, &f);
+            if (lcerr != LCLE_Ok) return CL_MapAndExceptLCL(self, lcerr);
 
-        printf("[+] %s - %zu lines\n", f->toPrint, f->lines);
+            if (self->cfg.locEnabled.val && f->hasLocStat) {
+                printf("[+] %s - %zu lines\n", f->toPrint, f->lines);
+                CL_PrintLocStat(self, &f->locStat, 1);
+            }
+        }
     }
     return CLE_Ok;
 }
@@ -334,7 +279,7 @@ int CL_Run(CLinesApp* self, int argc, char** argv) {
 
         err = CL_PrintFiles(self);
         if (err != CLE_Ok) {
-            return (int)err;
+            return (int)CL_MapAndExceptCL(self, err);
         }
 
         printf(BOLD "Total Lines:" RESET " %zu\n", self->linesCount);

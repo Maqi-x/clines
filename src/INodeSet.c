@@ -17,6 +17,32 @@ static inline INS_Error INS_GetEntry(INode fi, INS_Entry** out) {
     return INSE_Ok;
 }
 
+static INS_Error INS_Rehash(INodeSet* self, usize newCap) {
+    INS_Entry** newBuckets = calloc(newCap, sizeof(INS_Entry*));
+    if (newBuckets == NULL) return INSE_AllocFailed;
+
+    for (usize i = 0; i < self->cap; ++i) {
+        INS_Entry* entry = self->buckets[i];
+        while (entry) {
+            INS_Entry* next = entry->next;
+
+            usize newIndex = self->hashFunc(entry->key) % newCap;
+
+            // insert at the head of the new bucket
+            entry->next = newBuckets[newIndex];
+            newBuckets[newIndex] = entry;
+
+            entry = next;
+        }
+    }
+
+    free(self->buckets);
+    self->buckets = newBuckets;
+    self->cap = newCap;
+
+    return INSE_Ok;
+}
+
 static inline void INS_DropEntry(INS_Entry* entry) {
     free(entry);
 }
@@ -52,17 +78,16 @@ INS_Error INS_Clear(INodeSet* self) {
         }
         self->buckets[i] = NULL;
     }
-    free(self->buckets);
-    self->buckets = NULL;
-
     self->size = 0;
-    self->cap = 0;
     return INSE_Ok;
 }
 
+
 INS_Error INS_Destroy(INodeSet* self) {
-    INS_Error err = INS_Clear(self);
-    if (err != INSE_Ok) return err;
+    INS_Clear(self);
+    free(self->buckets);
+    self->buckets = NULL;
+    self->cap = 0;
 
     self->hashFunc = NULL;
     self->eqlFunc = NULL;
@@ -71,11 +96,15 @@ INS_Error INS_Destroy(INodeSet* self) {
 
 INS_Error INS_Copy(INodeSet* dst, const INodeSet* src) {
     INS_Clear(dst);
+
+    INS_Error err = INS_Rehash(dst, src->cap);
+    if (err != INSE_Ok) return err;
+
     for (usize i = 0; i < src->cap; ++i) {
         INS_Entry* entry = src->buckets[i];
-        while (entry) {
-            INS_Error err = INS_Insert(dst, entry->key);
-            if (err != INSE_Ok) return err;
+        while (entry != NULL) {
+            err = INS_Insert(dst, entry->key);
+            if (err != INSE_Ok && err != INSE_AlredyExists) return err;
             entry = entry->next;
         }
     }
@@ -85,32 +114,6 @@ INS_Error INS_Copy(INodeSet* dst, const INodeSet* src) {
 INS_Error INS_Move(INodeSet* dst, INodeSet* src) {
     memcpy(dst, src, sizeof(INodeSet));
     memset(src, 0, sizeof(INodeSet));
-    return INSE_Ok;
-}
-
-INS_Error INS_Rehash(INodeSet* self, usize newCap) {
-    INS_Entry** newBuckets = calloc(newCap, sizeof(INS_Entry*));
-    if (newBuckets == NULL) return INSE_AllocFailed;
-
-    for (usize i = 0; i < self->cap; ++i) {
-        INS_Entry* entry = self->buckets[i];
-        while (entry) {
-            INS_Entry* next = entry->next;
-
-            usize newIndex = self->hashFunc(entry->key) % newCap;
-
-            // insert at the head of the new bucket
-            entry->next = newBuckets[newIndex];
-            newBuckets[newIndex] = entry;
-
-            entry = next;
-        }
-    }
-
-    free(self->buckets);
-    self->buckets = newBuckets;
-    self->cap = newCap;
-
     return INSE_Ok;
 }
 

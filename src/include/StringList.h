@@ -2,6 +2,8 @@
 #define STRING_LIST_H
 
 #include <Definitions.h>
+
+#include <stdbool.h>
 #include <stdio.h>
 
 typedef enum SL_Error {
@@ -38,6 +40,12 @@ SL_Error SL_Append(StringList* self, const char* str);
 SL_Error SL_Pop(StringList* self, char** out);
 SL_Error SL_Set(StringList* self, usize index, const char* str);
 SL_Error SL_Get(StringList* self, usize index, char** out);
+
+bool SL_EqTo(StringList* lhs, const char* const* rhs);
+bool SL_IneqTo(StringList* lhs, const char* const* rhs);
+
+bool SL_Eq(StringList* lhs, StringList* rhs);
+bool SL_Ineq(StringList* lhs, StringList* rhs);
 
 SL_Error SL_Print(StringList* self, FILE* out);
 

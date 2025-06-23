@@ -48,9 +48,10 @@ typedef struct Config {
     StringList includedPaths;
     StringList excludedPaths;
 
-    CFG_Switch verbose;
+    CFG_Switch printMode;
     CFG_Switch recursive;
     CFG_Switch debugMode;
+    CFG_Switch locEnabled;
 
     usize maxDepth;
     bool maxDepthSetted;
@@ -62,7 +63,7 @@ typedef struct Config {
     char* errorDetails;
 } Config;
 
-CFG_Error CFG_SetVerbose(Config* self, bool value);
+CFG_Error CFG_SetPrintMode(Config* self, bool value);
 CFG_Error CFG_SetRecursive(Config* self, bool value);
 CFG_Error CFG_SetLastUnexpectedArg(Config* self, const char* arg, usize argLen, const char* prefix);
 CFG_Error CFG_SetErrorDetails(Config* self, const char* msg);

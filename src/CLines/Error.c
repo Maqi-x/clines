@@ -3,6 +3,13 @@
 
 #include <Definitions.h>
 
+#include <Config.h>
+#include <StringList.h>
+#include <LineCounterList.h>
+#include <INodeSet.h>
+#include <LocSettings.h>
+#include <LocParser.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,6 +103,7 @@ CL_Error CL_MapAndExceptCL(CLinesApp* self, CL_Error err) {
     case CLE_ConfigError:
     case CLE_ListError:
     case CLE_SetError:
+    case CLE_LocError:
         // assume CL_MapAndExceptLCL / CL_MapAndExceptCFG / CL_MapAndExceptINS alredy called
         break;
 
@@ -141,7 +149,7 @@ CL_Error CL_MapAndExceptINS(CLinesApp* self, INS_Error inerr) {
         return CLE_Ok;
     case INSE_AlredyExists:
         MSG_ShowDebugLog("INodeSet: key alredy exists");
-        return CLE_Ok; // not hard error
+        return CLE_Ok; // not a hard error
     case INSE_AllocFailed:
         MSG_ShowError("Internal error.");
         MSG_ShowDebugLog("Out of memory (malloc failed).");
@@ -151,4 +159,20 @@ CL_Error CL_MapAndExceptINS(CLinesApp* self, INS_Error inerr) {
     }
 
     return CLE_SetError;
+}
+
+CL_Error MapAndExceptLP(CLinesApp* self, LP_Error lperr) {
+    switch (lperr) {
+    case LPE_Ok:
+        return CLE_Ok;
+    case LPE_AllocFailed:
+        MSG_ShowError("Internal error.");
+        MSG_ShowDebugLog("Out of memory (malloc failed).");
+    case LPE_Unterminated:
+        MSG_ShowError("Error counting lines in file: %s. Unterminated string or comment", self->errorDetails);
+    case LPE_FileOpenError:
+        return CLE_FileOpenError;
+    }
+
+    return CLE_InternalError;
 }

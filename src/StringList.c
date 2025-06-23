@@ -1,5 +1,7 @@
-#include <Definitions.h>
 #include <StringList.h>
+
+#include <Definitions.h>
+#include <Utils.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -138,6 +140,52 @@ SL_Error SL_Get(StringList* self, usize index, char** out) {
     }
     *out = self->data[index];
     return SLE_Ok;
+}
+
+bool SL_EqTo(StringList* lhs, const char* const* rhs) {
+    for (usize i = 0; rhs[i] != NULL && i < lhs->len; ++i) {
+        if (!StrEql(lhs->data[i], rhs[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SL_IneqTo(StringList* lhs, const char* const* rhs) {
+    for (usize i = 0; rhs[i] != NULL && i < lhs->len; ++i) {
+        if (StrEql(lhs->data[i], rhs[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SL_Eq(StringList* lhs, StringList* rhs) {
+    if (lhs->len != rhs->len) return false;
+
+    const usize len = lhs->len;
+    for (usize i = 0; i < len; ++i) {
+        if (!StrEql(lhs->data[i], rhs->data[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SL_Ineq(StringList* lhs, StringList* rhs) {
+    if (lhs->len != rhs->len) return true;
+
+    const usize len = lhs->len;
+    for (usize i = 0; i < len; ++i) {
+        if (StrEql(lhs->data[i], rhs->data[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 SL_Error SL_Print(StringList* self, FILE* out) {

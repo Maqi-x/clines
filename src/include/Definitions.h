@@ -14,11 +14,4 @@ typedef struct FileMeta {
     time_t mtime;
 } FileMeta;
 
-typedef struct LineCounter {
-    char* toPrint;
-    usize lines;
-
-    FileMeta meta;
-} LineCounter;
-
 #endif // DEFINTIONS_H

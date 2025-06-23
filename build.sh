@@ -4,14 +4,14 @@ source "scripts/utils.sh"
 
 # ---------------------- Default Variables ---------------------- #
 CC="${CC:-gcc}"
-CCFLAGS=( -Wall -Werror -std="c11" -O2 )
+CCFLAGS=( -Wall -Werror -O2 )
 
 if [ -f "compile_flags.txt" ]; then
     readFlags=$(tr '\n' ' ' < compile_flags.txt)
     if [ -n "$readFlags" ]; then
         read -ra CCFLAGS <<< "$readFlags"
     else
-        CCFLAGS=( -Wall -Werror -std="c11" -O2 )
+        CCFLAGS=( -Wall -Werror -O2 )
     fi
 fi
 
@@ -30,10 +30,10 @@ run=false
 # ---------------------- Parsing Arguments ---------------------- #
 for arg in "$@"; do
 	case $arg in
-	--CC=*)
+	--cc=*)
 		CC="${arg#*=}"
 		;;
-	--CCFLAGS=*)
+	--ccflags=*)
 		read -ra CCFLAGS <<< "${arg#*=}"
 		;;
 	--OUT-FILE=*)
@@ -113,7 +113,7 @@ chmod +x "$OUTDIR/$OUT"
 ShowSuccess "Build completed: $OUT"
 
 if [[ $run = true ]]; then
-	"$OUTDIR/$OUT" || ShowError $? "An error occurred while running vish. exit code: $?"
+	"$OUTDIR/$OUT" || ShowError $? "An error occurred while running clines. exit code: $?"
 fi
 
 exit $SuccessExit

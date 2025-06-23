@@ -4,6 +4,8 @@
 #include <Config.h>
 #include <Definitions.h>
 
+#include <LocSettings.h>
+
 #include <stdio.h>
 
 typedef enum LCL_Error {
@@ -12,6 +14,15 @@ typedef enum LCL_Error {
     LCLE_InvalidArgument,
     LCLE_IndexOutOfRange,
 } LCL_Error;
+
+typedef struct LineCounter {
+    char* toPrint;
+    usize lines;
+
+    FileMeta meta;
+    bool hasLocStat;
+    LocStat locStat;
+} LineCounter;
 
 typedef struct LineCounterList {
     LineCounter* data;
@@ -38,8 +49,8 @@ LCL_Error LCL_Copy(LineCounterList* dst, const LineCounterList* src);
 //        if it does, you need to call @ref LCL_Destroy before this operation
 LCL_Error LCL_Move(LineCounterList* dst, LineCounterList* src);
 
-LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta);
-LCL_Error LCL_Set(LineCounterList* self, usize index, const char* name, usize lines, FileMeta* meta);
+LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta, LocStat locStat, bool hasLocStat);
+LCL_Error LCL_Set(LineCounterList* self, usize index, const char* name, usize lines, FileMeta* meta, LocStat locStat, bool hasLocStat);
 LCL_Error LCL_Get(LineCounterList* self, usize index, LineCounter** out);
 
 LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode, bool reverse);

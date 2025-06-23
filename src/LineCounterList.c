@@ -117,7 +117,7 @@ LCL_Error LCL_Move(LineCounterList* dst, LineCounterList* src) {
     return LCLE_Ok;
 }
 
-LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta) {
+LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileMeta* meta, LocStat locStat, bool hasLocStat) {
     LCL_Error err = LCL_Expand(self);
     if (err != LCLE_Ok) return err;
 
@@ -132,6 +132,8 @@ LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileM
             .mtime = meta->mtime,
             .size = meta->size,
         },
+        .hasLocStat = hasLocStat,
+        .locStat = locStat,
     };
     if (self->data[self->len - 1].meta.path == NULL) {
         return LCLE_AllocFailed;
@@ -139,12 +141,14 @@ LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileM
     return LCLE_Ok;
 }
 
-LCL_Error LCL_Set(LineCounterList* self, usize index, const char* toPrint, usize lines, FileMeta* meta) {
+LCL_Error LCL_Set(LineCounterList* self, usize index, const char* toPrint, usize lines, FileMeta* meta, LocStat locStat, bool hasLocStat) {
     if (index >= self->len) return LCLE_IndexOutOfRange;
 
     free(self->data[index].toPrint);
     self->data[index].toPrint = strdup(toPrint);
-    if (self->data[index].toPrint == NULL) return LCLE_AllocFailed;
+    if (self->data[index].toPrint == NULL) {
+        return LCLE_AllocFailed;
+    }
 
     self->data[index].lines = lines;
     self->data[index].meta = (FileMeta) {
@@ -155,6 +159,9 @@ LCL_Error LCL_Set(LineCounterList* self, usize index, const char* toPrint, usize
     if (self->data[index].meta.path == NULL) {
         return LCLE_AllocFailed;
     }
+
+    self->data[index].hasLocStat = hasLocStat;
+    self->data[index].locStat = locStat;
     return LCLE_Ok;
 }
 
