@@ -12,6 +12,12 @@
 
 #define DEBUG_HERE (MSG_ShowDebugLog("HERE (" STRINGIFY_EXPANDED(__FILE__) ": " STRINGIFY_EXPANDED(__LINE__) ")"))
 
+#define CLINES_VERSION_MAJOR 0
+#define CLINES_VERSION_MINOR 0
+#define CLINES_VERSION_PATCH 0
+
+#define CLINES_VERSION STRINGIFY_EXPANDED(CLINES_VERSION_MAJOR) "." STRINGIFY_EXPANDED(CLINES_VERSION_MINOR) "." STRINGIFY_EXPANDED(CLINES_VERSION_PATCH)
+
 static inline bool HasPrefix(const char* str, const char* prefix) {
     const usize prefixLen = strlen(prefix);
     const usize strLen = strlen(str);

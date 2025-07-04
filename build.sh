@@ -33,16 +33,16 @@ for arg in "$@"; do
 	--cc=*)
 		CC="${arg#*=}"
 		;;
-	--ccflags=*)
+	--ccflags=*|--cc-flags=*)
 		read -ra CCFLAGS <<< "${arg#*=}"
 		;;
-	--OUT-FILE=*)
+	--out-file=*)
 		OUT="${arg#*=}"
 		;;
-	--OUT-DIR=*)
+	--out-dir=*)
 		OUTDIR="${arg#*=}"
 		;;
-	--BUILD-DIR=*)
+	--build-dir=*)
 		BUILD="${arg#*=}"
 		;;
 	run | --run)

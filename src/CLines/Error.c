@@ -4,11 +4,11 @@
 #include <Definitions.h>
 
 #include <Config.h>
-#include <StringList.h>
-#include <LineCounterList.h>
 #include <INodeSet.h>
-#include <LocSettings.h>
+#include <LineCounterList.h>
 #include <LocParser.h>
+#include <LocSettings.h>
+#include <StringList.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -54,15 +54,19 @@ CL_Error CL_MapAndExceptCFG(CLinesApp* self, CFG_Error cerr) {
     switch (cerr) {
     case CFGE_UnexpectedArgument:
         MSG_ShowError("Unexpected argument: %s.", self->cfg.errorDetails);
+        MSG_ShowTip("Try using --help for usage information.");
         break;
     case CFGE_RedeclaredFlag:
         MSG_ShowError("Flag redeclared.");
+        MSG_ShowTip("Try using --help for usage information.");
         break;
     case CFGE_InvalidInputNumber:
         MSG_ShowError("Invalid input number.");
+        MSG_ShowTip("Try using --help for usage information.");
         break;
     case CFGE_InvalidSortMode:
         MSG_ShowError("Invalid sort mode: %s.", self->cfg.errorDetails);
+        MSG_ShowTip("Try using --help for usage information.");
         break;
 
     case CFGE_AllocFailed:
@@ -81,10 +85,10 @@ CL_Error CL_MapAndExceptLCL(CLinesApp* self, LCL_Error lcerr) {
         return CLE_Ok;
     case LCLE_IndexOutOfRange:
         MSG_ShowError("Internal error.");
-        MSG_ShowDebugLog("Index Out Of the Range! Check indices...");
+        MSG_ShowDebugLog("LineCounterList: Index Out Of the Range! Check indices...");
     case LCLE_AllocFailed:
         MSG_ShowError("Internal error.");
-        MSG_ShowDebugLog("Out of memory. (malloc failed)");
+        MSG_ShowDebugLog("LineCounterList: Out of memory. (malloc failed)");
     case LCLE_InvalidArgument:
         MSG_ShowError("Internal error.");
         MSG_ShowDebugLog("LineCounterList: InvalidArgument");

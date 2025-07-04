@@ -58,7 +58,7 @@ LCL_Error LCL_InitReserved(LineCounterList* self, usize minCap) {
 LCL_Error LCL_Clear(LineCounterList* self) {
     for (LineCounter* c = self->data; c < self->data + self->len; ++c) {
         free(c->toPrint);
-        free(c->meta.path);
+        free(c->meta.fullPath);
     }
 
     free(self->data);
@@ -94,12 +94,12 @@ LCL_Error LCL_Copy(LineCounterList* dst, const LineCounterList* src) {
 
         FileMeta* srcMeta = &src->data[i].meta;
         dst->data[i].meta = (FileMeta) {
-            .path = strdup(srcMeta->path),
+            .fullPath = strdup(srcMeta->fullPath),
             .mtime = srcMeta->mtime,
             .size = srcMeta->size,
         };
 
-        if (dst->data[i].meta.path == NULL) {
+        if (dst->data[i].meta.fullPath == NULL) {
             return LCLE_AllocFailed; // LCL_Destroy should free alredy allocated paths
         }
 
@@ -128,14 +128,14 @@ LCL_Error LCL_Append(LineCounterList* self, const char* name, usize lines, FileM
         .toPrint = dname,
         .lines = lines,
         .meta = (FileMeta) {
-            .path = strdup(meta->path),
+            .fullPath = strdup(meta->fullPath),
             .mtime = meta->mtime,
             .size = meta->size,
         },
         .hasLocStat = hasLocStat,
         .locStat = locStat,
     };
-    if (self->data[self->len - 1].meta.path == NULL) {
+    if (self->data[self->len - 1].meta.fullPath == NULL) {
         return LCLE_AllocFailed;
     }
     return LCLE_Ok;
@@ -152,11 +152,11 @@ LCL_Error LCL_Set(LineCounterList* self, usize index, const char* toPrint, usize
 
     self->data[index].lines = lines;
     self->data[index].meta = (FileMeta) {
-        .path = strdup(meta->path),
+        .fullPath = strdup(meta->fullPath),
         .mtime = meta->mtime,
         .size = meta->size,
     };
-    if (self->data[index].meta.path == NULL) {
+    if (self->data[index].meta.fullPath == NULL) {
         return LCLE_AllocFailed;
     }
 
@@ -189,11 +189,11 @@ static int cmpByName(const void* p1, const void* p2) {
     const LineCounter* a = (const LineCounter*)p1;
     const LineCounter* b = (const LineCounter*)p2;
 
-    const char* name1 = strrchr(a->meta.path, '/');
-    const char* name2 = strrchr(b->meta.path, '/');
+    const char* name1 = strrchr(a->meta.fullPath, '/');
+    const char* name2 = strrchr(b->meta.fullPath, '/');
 
-    name1 = name1 ? name1 + 1 : a->meta.path;
-    name2 = name2 ? name2 + 1 : b->meta.path;
+    name1 = name1 ? name1 + 1 : a->meta.fullPath;
+    name2 = name2 ? name2 + 1 : b->meta.fullPath;
 
     int cmp = strcmp(name1, name2);
     if (cmp != 0) return cmp;
@@ -209,8 +209,8 @@ static int cmpByNameReversed(const void* p1, const void* p2) {
 }
 
 static int cmpByExt(const void* p1, const void* p2) {
-    const char* path1 = ((const LineCounter*)p1)->meta.path;
-    const char* path2 = ((const LineCounter*)p2)->meta.path;
+    const char* path1 = ((const LineCounter*)p1)->meta.fullPath;
+    const char* path2 = ((const LineCounter*)p2)->meta.fullPath;
 
     const char* ext1 = GetExtension(path1);
     const char* ext2 = GetExtension(path2);
@@ -223,8 +223,8 @@ static int cmpByExtReversed(const void* p1, const void* p2) {
 }
 
 static int cmpByPath(const void* p1, const void* p2) {
-    const char* path1 = ((const LineCounter*)p1)->meta.path;
-    const char* path2 = ((const LineCounter*)p2)->meta.path;
+    const char* path1 = ((const LineCounter*)p1)->meta.fullPath;
+    const char* path2 = ((const LineCounter*)p2)->meta.fullPath;
 
     return strcmp(path1, path2);
 }
@@ -233,8 +233,43 @@ static int cmpByPathReversed(const void* p1, const void* p2) {
     return -cmpByPath(p1, p2);
 }
 
+static int cmpByMTime(const void* p1, const void* p2) {
+    time_t mtime1 = ((const LineCounter*)p1)->meta.mtime;
+    time_t mtime2 = ((const LineCounter*)p2)->meta.mtime;
+
+    if (mtime1 < mtime2) return -1;
+    if (mtime1 > mtime2) return 1;
+    return 0;
+}
+
+static int cmpByMTimeReversed(const void* p1, const void* p2) {
+    return -cmpByMTime(p1, p2);
+}
+
+static int cmpBySize(const void* p1, const void* p2) {
+    off_t size1 = ((const LineCounter*)p1)->meta.size;
+    off_t size2 = ((const LineCounter*)p2)->meta.size;
+
+    if (size1 < size2) return -1;
+    if (size1 > size2) return 1;
+    return 0;
+}
+
+static int cmpBySizeReversed(const void* p1, const void* p2) {
+    return -cmpBySize(p1, p2);
+}
+
 LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode, bool reverse) {
-    if (mode == SM_NotSort) return LCLE_Ok;
+    if (mode == SM_NotSort) {
+        if (reverse) {
+            for (usize i = 0; i < self->len/2; ++i) {
+                LineCounter tmp = self->data[i];
+                self->data[i] = self->data[self->len - i - 1];
+                self->data[self->len - i - 1] = tmp;
+            }
+        }
+        return LCLE_Ok;
+    }
 
     typedef int CmpCallback(const void*, const void*);
     CmpCallback* cmp = NULL;
@@ -251,6 +286,12 @@ LCL_Error LCL_SortBy(LineCounterList* self, CFG_SortMode mode, bool reverse) {
         break;
     case SM_Ext:
         cmp = reverse ? cmpByExtReversed : cmpByExt;
+        break;
+    case SM_MTime:
+        cmp = reverse ? cmpByMTimeReversed : cmpByMTime;
+        break;
+    case SM_Size:
+        cmp = reverse ? cmpBySizeReversed : cmpBySize;
         break;
     default:
         return LCLE_InvalidArgument;

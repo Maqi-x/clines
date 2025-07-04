@@ -15,6 +15,7 @@
 LP_Error LP_Init(LocParser* self) {
     self->state = LPS_Default;
     self->continueSingleLineComment = false;
+    self->continuePPDirective = false;
 
     self->hasCode = false;
     self->hasComment = false;

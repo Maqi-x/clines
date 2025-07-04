@@ -30,45 +30,32 @@
 #define INVERT "\033[7m"
 #define STRIKE "\033[9m"
 
-#define COLOR_DEBUGLOG1 BOLD MAGENTA
-#define COLOR_DEBUGLOG2 BRIGHT_MAGENTA
+#define COLOR_DEBUGLOG BOLD MAGENTA
+#define COLOR_ERROR BOLD RED
+#define COLOR_NOTE BOLD CYAN
+#define COLOR_INFO BOLD GREEN
+#define COLOR_WARN BOLD YELLOW
+#define COLOR_TIP BOLD BLUE
+#define COLOR_SUCCESS BOLD GREEN
 
-#define COLOR_ERROR1 BOLD RED
-#define COLOR_ERROR2 BRIGHT_RED
-
-#define COLOR_NOTE1 BOLD CYAN
-#define COLOR_NOTE2 BRIGHT_CYAN
-
-#define COLOR_INFO1 BOLD GREEN
-#define COLOR_INFO2 BRIGHT_GREEN
-
-#define COLOR_WARN1 BOLD YELLOW
-#define COLOR_WARN2 BRIGHT_YELLOW
-
-#define COLOR_TIP1 BOLD BLUE
-#define COLOR_TIP2 BRIGHT_BLUE
-
-#define COLOR_SUCCESS1 BOLD GREEN
-#define COLOR_SUCCESS2 BRIGHT_GREEN
-
-#define DEF_MSG_PRINTF_WRAPPER(name, prefix, color, isErr)                                                             \
-    static int MSG_Show##name(const char* fmt, ...) __attribute__((format(printf, 1, 2)));                             \
-    static inline int MSG_Show##name(const char* fmt, ...) {                                                           \
-        va_list args;                                                                                                  \
-        va_start(args, fmt);                                                                                           \
-        fputs(COLOR_##color##1 "[ " prefix " ]: " COLOR_##color##2, isErr ? stderr : stdout);                          \
-        int res = vfprintf(isErr ? stderr : stdout, fmt, args);                                                        \
-        fputs("\033[0m\n", isErr ? stderr : stdout);                                                                   \
-        va_end(args);                                                                                                  \
-        return res + strlen(COLOR_##color##1 "[ " prefix " ]:" COLOR_##color##2);                                      \
+#define DEF_MSG_PRINTF_WRAPPER(name, prefix, color, isErr)                                                                  \
+    static int MSG_Show##name(const char* fmt, ...) __attribute__((format(printf, 1, 2)));                                  \
+    static inline int MSG_Show##name(const char* fmt, ...) {                                                                \
+        va_list args;                                                                                                       \
+        va_start(args, fmt);                                                                                                \
+        fputs(COLOR_##color prefix ": " RESET, isErr ? stderr : stdout);                                                    \
+        int res = vfprintf(isErr ? stderr : stdout, fmt, args);                                                             \
+        fputs("\033[0m\n", isErr ? stderr : stdout);                                                                        \
+        va_end(args);                                                                                                       \
+        return res + strlen(COLOR_##color prefix ": ");                                                                     \
     }
 
-DEF_MSG_PRINTF_WRAPPER(Error, "ERROR", ERROR, true);
-DEF_MSG_PRINTF_WRAPPER(Note, "NOTE", NOTE, false);
-DEF_MSG_PRINTF_WRAPPER(Info, "INFO", INFO, false);
-DEF_MSG_PRINTF_WRAPPER(Warn, "WARNING", WARN, true);
-DEF_MSG_PRINTF_WRAPPER(Tip, "TIP", TIP, false);
-DEF_MSG_PRINTF_WRAPPER(Success, "SUCCESS", SUCCESS, false);
+DEF_MSG_PRINTF_WRAPPER(Error, "error", ERROR, true);
+DEF_MSG_PRINTF_WRAPPER(Note, "note", NOTE, false);
+DEF_MSG_PRINTF_WRAPPER(Info, "info", INFO, false);
+DEF_MSG_PRINTF_WRAPPER(Warn, "warning", WARN, true);
+DEF_MSG_PRINTF_WRAPPER(Tip, "tip", TIP, false);
+DEF_MSG_PRINTF_WRAPPER(Success, "success", SUCCESS, false);
 
 extern bool debug;
 
@@ -78,10 +65,10 @@ static inline int MSG_ShowDebugLog(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    fputs(COLOR_DEBUGLOG1 "[ DEBUG ]: " COLOR_DEBUGLOG2, stdout);
+    fputs(COLOR_DEBUGLOG "debug: " RESET, stdout);
     int res = vprintf(fmt, args);
     fputs("\033[0m\n", stdout);
 
     va_end(args);
-    return res + strlen(COLOR_DEBUGLOG1 "[ DEBUG ]:" COLOR_DEBUGLOG2);
+    return res + strlen(COLOR_DEBUGLOG "debug: ");
 }

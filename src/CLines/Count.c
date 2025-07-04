@@ -7,7 +7,6 @@
 #include <LocSettings.h>
 #include <LocUtils.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -76,12 +75,16 @@ static bool MatchesIncludedRegex(CLinesApp* self, const char* path) {
 /**
  * Checks if file/directory should be included
  */
-bool CL_ShouldIncludePath(CLinesApp* self, const char* path, const char* name, bool isDir) {
-    if (CL_IsExcluded(self, path)) return false;
+bool CL_ShouldIncludePath(CLinesApp* self, const char* resolvedPath, const char* name, bool isDir) {
+    if (!self->cfg.showHidden.val) {
+        if (HasPrefix(name, ".")) return false;
+    }
+
+    if (CL_IsExcluded(self, resolvedPath)) return false;
     if (!isDir) {
         if (HasExcludedExtension(self, name)) return false;
     }
-    if (MatchesExcludedRegex(self, path)) return false;
+    if (MatchesExcludedRegex(self, resolvedPath)) return false;
 
     if (!isDir) {
         if (self->cfg.includedExtensions.len > 0 && !HasIncludedExtension(self, name)) {
@@ -174,7 +177,6 @@ add:
 
 CL_Error CL_HandleFile(CLinesApp* self, const char* formattedPath, const char* resolvedPath, const char* name, FileMeta* meta) {
     if (!CL_ShouldIncludePath(self, resolvedPath, name, false)) return CLE_Ok;
-    if (CL_IsExcluded(self, resolvedPath)) return CLE_Ok;
 
     self->fileCount++;
 
@@ -253,7 +255,7 @@ CL_Error CL_CountRecursive(CLinesApp* self, const char* path, usize depth) {
     }
 
     FileMeta pathMeta = {
-        .path = (char*)path,
+        .fullPath = (char*)path,
         .size = pathStat.st_size,
         .mtime = pathStat.st_mtime,
     };
@@ -323,7 +325,7 @@ CL_Error CL_CountRecursive(CLinesApp* self, const char* path, usize depth) {
             if (st.st_size == 0) continue;
 
             FileMeta meta = {
-                .path = formattedPath,
+                .fullPath = formattedPath,
                 .size = st.st_size,
                 .mtime = st.st_mtime,
             };

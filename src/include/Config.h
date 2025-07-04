@@ -34,6 +34,8 @@ typedef enum CFG_SortMode {
     SM_Ext,
     SM_Name,
     SM_Path,
+    SM_MTime,
+    SM_Size,
 } CFG_SortMode;
 
 typedef struct CFG_Switch {
@@ -52,9 +54,17 @@ typedef struct Config {
     CFG_Switch recursive;
     CFG_Switch debugMode;
     CFG_Switch locEnabled;
+    CFG_Switch showHidden;
+
+    CFG_Switch showHelp;
+    CFG_Switch showVersion;
+    CFG_Switch showRepo;
 
     usize maxDepth;
     bool maxDepthSetted;
+
+    usize top;
+    usize topSetted;
 
     CFG_SortMode sortMode;
     CFG_Switch reverse;

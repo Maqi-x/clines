@@ -2,13 +2,14 @@
 #define CLINES_APP_H
 
 #include <Config.h>
+#include <Definitions.h>
 #include <Utils.h>
 
-#include <Definitions.h>
+#include <HelpPrinter.h>
 #include <INodeSet.h>
 #include <LineCounterList.h>
-#include <LocSettings.h>
 #include <LocParser.h>
+#include <LocSettings.h>
 
 #include <regex.h>
 
@@ -34,12 +35,14 @@ typedef enum CL_Error {
 
 typedef struct CLines {
     Config cfg;
+    HelpPrinter helpPrinter;
 
     usize linesCount;
     usize fileCount;
     usize dirCount;
 
     INodeSet seen;
+    LineCounterList files;
 
     regex_t* includedRegexes;
     usize includedRegexesCount;
@@ -49,8 +52,6 @@ typedef struct CLines {
 
     char** excludedPaths;
     usize excludedPathsCount;
-
-    LineCounterList files;
 
     char* currentPath;
     char* errorDetails;
@@ -68,13 +69,15 @@ CL_Error CL_MapAndExceptINS(CLinesApp* self, INS_Error inerr);
 CL_Error CL_MapAndExceptCL(CLinesApp* self, CL_Error err);
 CL_Error MapAndExceptLP(CLinesApp* self, LP_Error lperr);
 
-bool CL_ShouldIncludePath(CLinesApp* self, const char* path, const char* name, bool isDir);
-CL_Error CL_HandleFile(CLinesApp* self, const char* formattedPath, const char* resolvedPath, const char* name, FileMeta* meta);
-CL_Error CL_HandleFileWithLoc(CLinesApp* self, const char* formattedPath, const char* resolvedPath, const char* name, FileMeta* meta);
+bool CL_ShouldIncludePath(CLinesApp* self, const char* resolvedPath, const char* name, bool isDir);
+CL_Error CL_HandleFile(
+    CLinesApp* self, const char* formattedPath, const char* resolvedPath, const char* name, FileMeta* meta);
+CL_Error CL_HandleFileWithLoc(
+    CLinesApp* self, const char* formattedPath, const char* resolvedPath, const char* name, FileMeta* meta);
 CL_Error CL_CountRecursive(CLinesApp* self, const char* path, usize depth);
 CL_Error CL_ResetCounter(CLinesApp* self);
 
-bool CL_IsExcluded(CLinesApp* self, const char* fullPath);
+bool CL_IsExcluded(CLinesApp* self, const char* resolvedPath);
 CL_Error CL_LoadIncludedRegexes(CLinesApp* self);
 CL_Error CL_LoadExcludedRegexes(CLinesApp* self);
 CL_Error CL_LoadExcludedPaths(CLinesApp* self);

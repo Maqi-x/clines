@@ -22,17 +22,27 @@ static CFG_Error SetSwitch(CFG_Switch* pswitch, bool value) {
 CFG_Error CFG_SetPrintMode(Config* self, bool value) {
     return SetSwitch(&self->printMode, value);
 }
-
 CFG_Error CFG_SetRecursive(Config* self, bool value) {
     return SetSwitch(&self->recursive, value);
 }
-
 CFG_Error CFG_SetDebugMode(Config* self, bool value) {
     return SetSwitch(&self->debugMode, value);
 }
-
 CFG_Error CFG_SetLocEnabled(Config* self, bool value) {
     return SetSwitch(&self->locEnabled, value);
+}
+CFG_Error CFG_SetShowHidden(Config* self, bool value) {
+    return SetSwitch(&self->showHidden, value);
+}
+
+CFG_Error CFG_SetShowHelp(Config* self, bool value) {
+    return SetSwitch(&self->showHelp, value);
+}
+CFG_Error CFG_SetShowVersion(Config* self, bool value) {
+    return SetSwitch(&self->showVersion, value);
+}
+CFG_Error CFG_SetShowRepo(Config* self, bool value) {
+    return SetSwitch(&self->showRepo, value);
 }
 
 CFG_Error CFG_SetErrorDetails(Config* self, const char* msg) {
@@ -96,6 +106,31 @@ CFG_Error CFG_SetMaxDepthStr(Config* self, const char* maxDepthStr) {
     return CFGE_Ok;
 }
 
+CFG_Error CFG_SetTop(Config* self, usize top) {
+    if (self->topSetted) {
+        return CFGE_RedeclaredFlag;
+    }
+
+    self->top = (usize)top;
+    self->topSetted = true;
+    return CFGE_Ok;
+}
+
+CFG_Error CFG_SetTopStr(Config* self, const char* topStr) {
+    if (self->topSetted) {
+        return CFGE_RedeclaredFlag;
+    }
+
+    long long top = 0;
+    if (!parseInt(topStr, &top)) {
+        return CFGE_InvalidInputNumber;
+    }
+
+    self->top = (usize)top;
+    self->topSetted = true;
+    return CFGE_Ok;
+}
+
 CFG_Error CFG_SetReverse(Config* self, bool reverse) {
     return SetSwitch(&self->reverse, reverse);
 }
@@ -124,8 +159,11 @@ CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr, bool reverse) {
         mode = SM_Name;
     } else if (StrEql(modeStr, "ext")) {
         mode = SM_Ext;
+    } else if (StrEql(modeStr, "mtime")) {
+        mode = SM_MTime;
+    } else if (StrEql(modeStr, "size")) {
+        mode = SM_Size;
     } else {
-        printf("%s\n", modeStr);
         CFG_SetErrorDetails(self, modeStr);
         return CFGE_InvalidSortMode;
     }
@@ -136,7 +174,7 @@ CFG_Error CFG_SetSortModeStr(Config* self, const char* modeStr, bool reverse) {
 CFG_Error CFG_Init(Config* self) {
     self->printMode = (CFG_Switch) { false, false };
     self->recursive = (CFG_Switch) { false, false };
-    self->reverse = (CFG_Switch) { false, false };
+    self->reverse   = (CFG_Switch) { false, false };
 
     self->errorDetails = NULL;
     self->maxDepth = 0;
@@ -177,9 +215,10 @@ CFG_Error CFG_Destroy(Config* self) {
 
     self->maxDepth = 0;
     self->maxDepthSetted = false;
-    self->printMode = (CFG_Switch) { false, false };
-    self->recursive = (CFG_Switch) { false, false };
-    self->reverse = (CFG_Switch) { false, false };
+    self->printMode  =  (CFG_Switch) { false, false };
+    self->recursive  =  (CFG_Switch) { false, false };
+    self->reverse    =  (CFG_Switch) { false, false };
+    self->showHidden =  (CFG_Switch) { false, false };
     self->sortMode = _SM_NotSetted;
 
     self->mode = CFGM_Pass;
@@ -234,7 +273,15 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
     self->mode = CFGM_Pass;
 
     usize flagLen = strlen(flag);
-    if (StrEql(flag, "recursive")) {
+    if (StrEql(flag, "help")) {
+        CFG_SetShowHelp(self, true);
+    } else if (StrEql(flag, "version")) {
+        CFG_SetShowVersion(self, true);
+    } else if (StrEql(flag, "repo")) {
+        CFG_SetShowRepo(self, true);
+    }
+
+    else if (StrEql(flag, "recursive")) {
         CFG_Error err = CFG_SetRecursive(self, true);
         if (err != CFGE_Ok) return err;
     } else if (StrEql(flag, "no-recursive")) {
@@ -246,6 +293,9 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
     } else if (StrEql(flag, "no-verbose") || StrEql(flag, "no-print")) {
         CFG_Error err = CFG_SetPrintMode(self, false);
         if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "no-debug")) {
+        CFG_Error err = CFG_SetDebugMode(self, false);
+        if (err != CFGE_Ok) return err;
     } else if (StrEql(flag, "debug")) {
         CFG_Error err = CFG_SetDebugMode(self, true);
         if (err != CFGE_Ok) return err;
@@ -254,6 +304,12 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
         if (err != CFGE_Ok) return err;
     } else if (StrEql(flag, "no-loc")) {
         CFG_Error err = CFG_SetLocEnabled(self, false);
+        if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "show-hidden")) {
+        CFG_Error err = CFG_SetShowHidden(self, true);
+        if (err != CFGE_Ok) return err;
+    } else if (StrEql(flag, "no-show-hidden")) {
+        CFG_Error err = CFG_SetShowHidden(self, false);
         if (err != CFGE_Ok) return err;
     }
 
@@ -299,9 +355,10 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag) {
 }
 
 CFG_Error CFG_SetDefauts(Config* self) {
-    const bool defaultRecursiveVal = false;
+    const bool defaultRecursiveVal = true;
     const bool defaultVerboseVal = false;
     const bool defaultReverseVal = false;
+    const bool defaultShowHiddenVal = false;
     const usize defaultMaxDepthVal = 50;
     const char* const defaultPathVal = ".";
 
@@ -315,6 +372,9 @@ CFG_Error CFG_SetDefauts(Config* self) {
     if (!self->reverse.setted) {
         err = CFG_SetReverse(self, defaultReverseVal);
     }
+    if (!self->showHidden.setted) {
+        err = CFG_SetShowHidden(self, defaultShowHiddenVal);
+    }
 
     if (!self->maxDepthSetted) {
         err = CFG_SetMaxDepth(self, defaultMaxDepthVal);
@@ -326,6 +386,7 @@ CFG_Error CFG_SetDefauts(Config* self) {
         self->sortMode = SM_NotSort;
     }
 
+    self->reverse.val = !self->reverse.val;
     return err;
 }
 
@@ -417,8 +478,34 @@ CFG_Error CFG_DebugBump(Config* self, FILE* out, const char* indent) {
     SL_Print(&self->excludedPaths, out);
     fputc('\n', out);
 
-    fprintf(out, "%s.recursive = %s\n", indent, s(self->recursive.val));
-    fprintf(out, "%s.printMode = %s\n", indent, s(self->printMode.val));
+    CFG_Switch* switches[] = {
+        &self->printMode,
+        &self->recursive,
+        &self->reverse,
+        &self->debugMode,
+        &self->locEnabled,
+        &self->showHidden,
+        &self->showHelp,
+        &self->showVersion,
+        &self->showRepo,
+    };
+    const char* names[] = {
+        "printMode",
+        "recursive",
+        "reverse",
+        "debugMode",
+        "locEnabled",
+        "showHidden",
+        "showHelp",
+        "showVersion",
+        "showRepo",
+    };
+
+    usize switchesCount = sizeof(switches) / sizeof(switches[0]);
+
+    for (size_t i = 0; i < switchesCount; i++) {
+        fprintf(out, "%s.%s = %s\n", indent, names[i], s(switches[i]->val));
+    }
 
     fprintf(out, "%s.maxDepth = %zu\n", indent, self->maxDepth);
     fprintf(out, "%s.maxDepthSetted = %s\n", indent, s(self->maxDepthSetted));

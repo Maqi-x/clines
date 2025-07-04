@@ -73,6 +73,15 @@ static inline void LS_DebugBump(LocStat* stat, FILE* out, const char* indent) {
 #define LOC_LANG_PYTHON (&(GetLocEntries()[4]))
 #define LOC_LANG_MAKEFILE (&(GetLocEntries()[5]))
 #define LOC_LANG_SHELL (&(GetLocEntries()[6]))
+#define LOC_LANG_RUST (&(GetLocEntries()[7]))
+#define LOC_LANG_JS (&(GetLocEntries()[8]))
+#define LOC_LANG_TS (&(GetLocEntries()[9]))
+#define LOC_LANG_HTML (&(GetLocEntries()[10]))
+#define LOC_LANG_CSS (&(GetLocEntries()[11]))
+#define LOC_LANG_JSON (&(GetLocEntries()[12]))
+#define LOC_LANG_YAML (&(GetLocEntries()[13]))
+#define LOC_LANG_PERL (&(GetLocEntries()[14]))
+#define LOC_LANG_PHP (&(GetLocEntries()[15]))
 
 const LocEntry* GetLocEntries();
 usize GetLocEntriesCount();

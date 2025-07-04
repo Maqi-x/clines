@@ -62,6 +62,7 @@ dkms.conf
 compile_flags.txt
 build/
 out/
+tests/build/
 
 # Other
 **/__pycache__

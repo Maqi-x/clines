@@ -12,7 +12,7 @@ AllowShortFunctionsOnASingleLine: None          # Don't allow functions on a sin
 PointerAlignment: Left
 
 # Maximum line length before wrapping
-ColumnLimit: 120
+ColumnLimit: 125
 
 # Do not reflow or wrap comments
 ReflowComments: false

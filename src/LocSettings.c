@@ -131,6 +131,186 @@ static LocEntry locEntries[] = {
         .ppDirectiveStarts = NULL,
         .allowPPDirectiveContinues = false,
     },
+    (LocEntry) {
+        .langName = "Rust",
+        .extensions = (const char*[]) { "rs", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = (const char*[]) { "'", NULL },
+
+        .commentStarts = (const char*[]) { "//", NULL },
+        .allowCommentContinues = true,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"/*", "*/"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "JavaScript",
+        .extensions = (const char*[]) { "js", "mjs", "cjs", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", "`", NULL },
+        .multilineStringDelims = (const char*[]) { "`", NULL },
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "//", NULL },
+        .allowCommentContinues = true,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"/*", "*/"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "TypeScript",
+        .extensions = (const char*[]) { "ts", "tsx", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", "`", NULL },
+        .multilineStringDelims = (const char*[]) { "`", NULL },
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "//", NULL },
+        .allowCommentContinues = true,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"/*", "*/"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "HTML",
+        .extensions = (const char*[]) { "html", "htm", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = NULL,
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"<!--", "-->"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "CSS",
+        .extensions = (const char*[]) { "css", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = NULL,
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"/*", "*/"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "JSON",
+        .extensions = (const char*[]) { "json", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = NULL,
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = NULL,
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "YAML",
+        .extensions = (const char*[]) { "yaml", "yml", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "#", NULL },
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = NULL,
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "Perl",
+        .extensions = (const char*[]) { "pl", "pm", "t", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "#", NULL },
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = NULL,
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "Ruby",
+        .extensions = (const char*[]) { "rb", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = (const char*[]) { "\"\"\"", NULL },
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "#", NULL },
+        .allowCommentContinues = false,
+
+        .multilineCommentDelimPairs = NULL,
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
+    (LocEntry) {
+        .langName = "PHP",
+        .extensions = (const char*[]) { "php", NULL },
+        .names = NULL,
+
+        .stringDelims = (const char*[]) { "\"", "'", NULL },
+        .multilineStringDelims = NULL,
+
+        .charDelims = NULL,
+
+        .commentStarts = (const char*[]) { "//", "#", NULL },
+        .allowCommentContinues = true,
+
+        .multilineCommentDelimPairs = (const StringDelimPair[]) { {"/*", "*/"}, {NULL} },
+
+        .ppDirectiveStarts = NULL,
+        .allowPPDirectiveContinues = false,
+    },
 };
 
 const LocEntry* GetLocEntries() {
