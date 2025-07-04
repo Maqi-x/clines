@@ -52,7 +52,7 @@ static inline bool LS_Eql(const LocStat* a, const LocStat* b) {
            a->preprocessorLines == b->preprocessorLines;
 }
 
-static inline void LS_DebugBump(LocStat* stat, FILE* out, const char* indent) {
+static inline void LS_DebugPrint(LocStat* stat, FILE* out, const char* indent) {
     if (out == NULL) out = stdout;
     if (indent == NULL) indent = "    ";
 

@@ -304,7 +304,7 @@ int CL_Run(CLinesApp* self, int argc, char** argv) {
 
     debug = self->cfg.debugMode.val;
     if (debug) {
-        CFG_DebugBump(&self->cfg, stdout, NULL);
+        CFG_DebugPrint(&self->cfg, stdout, NULL);
     }
 
     int flagHandled = HandleBasicFlags(self);

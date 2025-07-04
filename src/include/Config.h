@@ -86,6 +86,6 @@ CFG_Error CFG_HandleLongOption(Config* self, const char* flag);
 
 CFG_Error CFG_SetDefaults(Config* self);
 CFG_Error CFG_Parse(Config* self, int argc, char** argv);
-CFG_Error CFG_DebugBump(Config* self, FILE* out, const char* indent);
+CFG_Error CFG_DebugPrint(Config* self, FILE* out, const char* indent);
 
 #endif // CONFIG_H

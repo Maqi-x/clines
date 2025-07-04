@@ -9,9 +9,9 @@
 
 #define DBG \
     fprintf(stderr, "Got: "); \
-    LS_DebugBump(&result, stderr, NULL); \
+    LS_DebugPrint(&result, stderr, NULL); \
     fprintf(stderr, "Expected: "); \
-    LS_DebugBump(&expected, stderr, NULL); \
+    LS_DebugPrint(&expected, stderr, NULL); \
     fprintf(stderr, "Code: ```\n"); \
     puts(testCode); \
     fprintf(stderr, "```\n");

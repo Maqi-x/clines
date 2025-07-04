@@ -448,7 +448,7 @@ static inline const char* s(bool val) {
     return "false";
 }
 
-CFG_Error CFG_DebugBump(Config* self, FILE* out, const char* indent) {
+CFG_Error CFG_DebugPrint(Config* self, FILE* out, const char* indent) {
     if (indent == NULL) indent = "    ";
     if (out == NULL) out = stdout;
 
